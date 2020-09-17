@@ -1,5 +1,5 @@
 import { Entity, PrimaryKey, Property } from "@mikro-orm/core";
-import { Field, Int, ObjectType } from "type-graphql";
+import { Field, ObjectType } from "type-graphql";
 
 @ObjectType()
 @Entity()
@@ -16,6 +16,7 @@ export class Post {
   @Property({ type: "date", onUpdate: () => new Date() })
   updatedAt = new Date();
 
+  // Expose a field in the graphql
   @Field()
   @Property({ type: "text" })
   title!: string;
