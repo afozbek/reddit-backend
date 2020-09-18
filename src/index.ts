@@ -15,6 +15,8 @@ import connectRedis from "connect-redis";
 import { __prod__ } from "./constants";
 import { MyContext } from "src/types";
 
+import cors from "cors";
+
 require("dotenv").config();
 
 const main = async () => {
@@ -22,6 +24,8 @@ const main = async () => {
   await orm.getMigrator().up();
 
   const app = express();
+
+  app.use(cors());
 
   const RedisStore = connectRedis(session);
   const redisClient = redis.createClient();
