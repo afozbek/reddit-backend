@@ -7,6 +7,7 @@ import {
   InputType,
   Mutation,
   ObjectType,
+  Query,
   Resolver,
 } from "type-graphql";
 
@@ -42,10 +43,22 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+  @Query(() => User, { nullable: true })
+  async me(@Ctx() { em, req }: MyContext): Promise<User | null> {
+    const id = req.session.userId;
+    if (!id) {
+      return null;
+    }
+
+    const user = await em.findOne(User, { id });
+
+    return user;
+  }
+
   @Mutation(() => UserResponse)
   async register(
     @Arg("options") options: UsernamePasswordInput,
-    @Ctx() { em }: MyContext
+    @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
     if (options.username.length < 5) {
       return {
@@ -67,9 +80,7 @@ export class UserResolver {
 
     try {
       await em.persistAndFlush(user);
-    } catch (err) {
-      console.log(err);
-
+    } catch (err: any) {
       if (err.code === "23505") {
         return {
           errors: [
@@ -79,16 +90,26 @@ export class UserResolver {
             },
           ],
         };
+      } else {
+        return {
+          errors: [
+            {
+              field: "Username",
+              message: "Something went wrong",
+            },
+          ],
+        };
       }
     }
 
+    req.session.userId = user.id;
     return { user };
   }
 
   @Mutation(() => UserResponse, { nullable: true })
   async login(
     @Arg("options") options: UsernamePasswordInput,
-    @Ctx() { em }: MyContext
+    @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
     const user = await em.findOne(User, { username: options.username });
 
@@ -115,6 +136,8 @@ export class UserResolver {
         ],
       };
     }
+
+    req.session.userId = user.id;
 
     return { user };
   }
