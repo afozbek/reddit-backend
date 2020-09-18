@@ -13,7 +13,6 @@ import redis from "redis";
 import session from "express-session";
 import connectRedis from "connect-redis";
 import { __prod__ } from "./constants";
-import { MyContext } from "src/types";
 
 import cors from "cors";
 
@@ -25,7 +24,12 @@ const main = async () => {
 
   const app = express();
 
-  app.use(cors());
+  app.use(
+    cors({
+      origin: "http://localhost:3000",
+      credentials: true,
+    })
+  );
 
   const RedisStore = connectRedis(session);
   const redisClient = redis.createClient();
@@ -54,10 +58,13 @@ const main = async () => {
       resolvers: [HelloResolver, PostResolver, UserResolver],
       validate: false,
     }),
-    context: ({ req, res }): MyContext => ({ em: orm.em, req, res }),
+    context: ({ req, res }) => ({ em: orm.em, req, res }),
   });
 
-  apolloServer.applyMiddleware({ app });
+  apolloServer.applyMiddleware({
+    app,
+    cors: false,
+  });
 
   app.listen(8080, () => {
     console.log("Server is listening on 8080");
