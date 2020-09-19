@@ -60,15 +60,19 @@ export class UserResolver {
     @Arg("options") options: UsernamePasswordInput,
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
-    if (options.username.length < 5) {
-      return {
-        errors: [
-          {
-            field: "username",
-            message: "Username length must be at least 5 characters",
-          },
-        ],
-      };
+    const errors: FieldError[] = [];
+    if (options.username.trim().length < 5) {
+      errors.push({
+        field: "username",
+        message: "Username length must be at least 5 characters",
+      });
+    }
+
+    if (options.password.trim().length < 5) {
+      errors.push({
+        field: "password",
+        message: "Password length must be at least 5 characters",
+      });
     }
 
     const hashedPassword = await argon2.hash(options.password);
@@ -82,28 +86,23 @@ export class UserResolver {
       await em.persistAndFlush(user);
     } catch (err: any) {
       if (err.code === "23505") {
-        return {
-          errors: [
-            {
-              field: "Username",
-              message: "Username already exists",
-            },
-          ],
-        };
+        errors.push({
+          field: "username",
+          message: "Username already exists",
+        });
       } else {
-        return {
-          errors: [
-            {
-              field: "Username",
-              message: "Something went wrong",
-            },
-          ],
-        };
+        throw new Error(err);
       }
+
+      em.clear();
     }
 
-    req.session.userId = user.id;
-    return { user };
+    if (errors.length > 0) {
+      return { errors };
+    } else {
+      req.session.userId = user.id;
+      return { user };
+    }
   }
 
   @Mutation(() => UserResponse, { nullable: true })
