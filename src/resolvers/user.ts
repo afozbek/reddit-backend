@@ -12,6 +12,7 @@ import {
 } from "type-graphql";
 
 import argon2 from "argon2";
+import { __SESSION_COOKIE_NAME__ } from "../constants";
 
 // Arguments of mutations
 @InputType()
@@ -159,5 +160,22 @@ export class UserResolver {
     req.session.userId = user.id;
 
     return { user };
+  }
+
+  @Mutation(() => Boolean)
+  logout(@Ctx() { req, res }: MyContext) {
+    return new Promise((resolve) =>
+      req.session.destroy((err) => {
+        if (err) {
+          console.log("Logout Session Error:", err);
+          resolve(false);
+
+          return;
+        }
+
+        res.clearCookie(__SESSION_COOKIE_NAME__);
+        resolve(true);
+      })
+    );
   }
 }
