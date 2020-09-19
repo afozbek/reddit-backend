@@ -55,6 +55,26 @@ export class UserResolver {
     return user;
   }
 
+  @Query(() => [User])
+  users(@Ctx() { em }: MyContext): Promise<User[]> {
+    return em.find(User, {});
+  }
+
+  @Query(() => User, { nullable: true })
+  user(@Arg("id") id: number, @Ctx() { em }: MyContext): Promise<User | null> {
+    return em.findOne(User, { id });
+  }
+
+  @Mutation(() => Boolean)
+  async deleteUser(
+    @Arg("id") id: number,
+    @Ctx() { em }: MyContext
+  ): Promise<boolean> {
+    await em.nativeDelete(User, { id });
+
+    return true;
+  }
+
   @Mutation(() => UserResponse)
   async register(
     @Arg("options") options: UsernamePasswordInput,
