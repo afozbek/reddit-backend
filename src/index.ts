@@ -12,7 +12,7 @@ import { UserResolver } from "./resolvers/user";
 import redis from "redis";
 import session from "express-session";
 import connectRedis from "connect-redis";
-import { __prod__ } from "./constants";
+import { __prod__, __SESSION_COOKIE_NAME__ } from "./constants";
 
 import cors from "cors";
 
@@ -36,7 +36,7 @@ const main = async () => {
 
   app.use(
     session({
-      name: "qid",
+      name: __SESSION_COOKIE_NAME__,
       store: new RedisStore({
         client: redisClient,
         disableTouch: true,
