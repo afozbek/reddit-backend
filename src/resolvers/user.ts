@@ -126,7 +126,7 @@ export class UserResolver {
     }
   }
 
-  @Mutation(() => UserResponse, { nullable: true })
+  @Mutation(() => UserResponse)
   async login(
     @Arg("options") options: UsernamePasswordInput,
     @Ctx() { em, req }: MyContext
