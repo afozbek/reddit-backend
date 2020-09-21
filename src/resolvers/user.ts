@@ -32,8 +32,50 @@ class UserResponse {
   user?: User;
 }
 
+const errorGenerate = (err: FieldError) => {
+  const errObj: UserResponse = { errors: [err] };
+  return errObj;
+};
+
 @Resolver()
 export class UserResolver {
+  @Mutation(() => UserResponse)
+  async changePassword(
+    @Arg("newPassword") newPassword: string,
+    @Arg("passwordToken") passwordToken: string,
+    @Ctx() { req, em, redis }: MyContext
+  ): Promise<UserResponse> {
+    if (newPassword.trim().length < 5) {
+      return errorGenerate({
+        field: "newPassword",
+        message: "New password must be longer than 5 characters",
+      });
+    }
+
+    const redisKey = __FORGET_PASSWORD_PREFIX__ + passwordToken;
+    const userId = await redis.get(redisKey);
+
+    if (!userId) {
+      return errorGenerate({ field: "token", message: "Token is expired" });
+    }
+
+    const user = await em.findOne(User, { id: parseInt(userId) });
+
+    if (!user) {
+      return errorGenerate({ field: "token", message: "User no longer exist" });
+    }
+
+    user.password = await argon2.hash(newPassword);
+    await em.persistAndFlush(user);
+
+    await redis.del(redisKey);
+
+    // log in user after change password
+    req.session.userId = user.id;
+
+    return { user };
+  }
+
   @Mutation(() => Boolean)
   async forgotPassword(
     @Arg("email") email: string,
