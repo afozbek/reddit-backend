@@ -8,7 +8,6 @@ export async function sendEmail(to: string, html: string, subject: string) {
     user: "vxhjoizout67ojgg@ethereal.email",
     pass: "6rcQbdauzrRZJ2FHkD",
   };
-  console.log(testAccount);
 
   // create reusable transporter object using the default SMTP transport
   let transporter = nodemailer.createTransport({
