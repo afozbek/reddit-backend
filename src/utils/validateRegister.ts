@@ -1,5 +1,5 @@
-import { FieldError } from "src/resolvers/FieldError";
-import { UserInput } from "src/resolvers/UserInput";
+import { FieldError } from "src/types/FieldError";
+import { UserInput } from "src/types/UserInput";
 
 export const validateRegister = (options: UserInput) => {
   // SIMPLE VALIDATIONS
