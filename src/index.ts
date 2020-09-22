@@ -31,8 +31,6 @@ const main = async () => {
     synchronize: true,
     entities: [Post, User],
   });
-  // const orm = await MikroORM.init(mikroOrmConfig);
-  // await orm.getMigrator().up();
 
   const app = express();
 
