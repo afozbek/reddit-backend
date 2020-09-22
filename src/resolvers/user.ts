@@ -43,7 +43,7 @@ export class UserResolver {
   async changePassword(
     @Arg("newPassword") newPassword: string,
     @Arg("passwordToken") passwordToken: string,
-    @Ctx() { req, em, redis }: MyContext
+    @Ctx() { req, redis }: MyContext
   ): Promise<UserResponse> {
     if (newPassword.trim().length < 5) {
       return errorGenerate({
@@ -59,14 +59,18 @@ export class UserResolver {
       return errorGenerate({ field: "token", message: "Token is expired" });
     }
 
-    const user = await em.findOne(User, { id: parseInt(userId) });
+    const newUserId = parseInt(userId);
+
+    const user = await User.findOne(newUserId);
 
     if (!user) {
       return errorGenerate({ field: "token", message: "User no longer exist" });
     }
 
-    user.password = await argon2.hash(newPassword);
-    await em.persistAndFlush(user);
+    await User.update(
+      { id: newUserId },
+      { password: await argon2.hash(newPassword) }
+    );
 
     await redis.del(redisKey);
 
@@ -79,9 +83,9 @@ export class UserResolver {
   @Mutation(() => Boolean)
   async forgotPassword(
     @Arg("email") email: string,
-    @Ctx() { em, redis }: MyContext
+    @Ctx() { redis }: MyContext
   ) {
-    const user = await em.findOne(User, { email });
+    const user = await User.findOne({ where: { email } });
     if (!user) {
       return false;
     }
@@ -102,33 +106,28 @@ export class UserResolver {
   }
 
   @Query(() => User, { nullable: true })
-  async me(@Ctx() { em, req }: MyContext): Promise<User | null> {
+  me(@Ctx() { req }: MyContext) {
     const id = req.session.userId;
     if (!id) {
       return null;
     }
 
-    const user = await em.findOne(User, { id });
-
-    return user;
+    return User.findOne(id);
   }
 
   @Query(() => [User])
-  users(@Ctx() { em }: MyContext): Promise<User[]> {
-    return em.find(User, {});
+  users(): Promise<User[]> {
+    return User.find();
   }
 
   @Query(() => User, { nullable: true })
-  user(@Arg("id") id: number, @Ctx() { em }: MyContext): Promise<User | null> {
-    return em.findOne(User, { id });
+  user(@Arg("id") id: number): Promise<User | undefined> {
+    return User.findOne(id);
   }
 
   @Mutation(() => Boolean)
-  async deleteUser(
-    @Arg("id") id: number,
-    @Ctx() { em }: MyContext
-  ): Promise<boolean> {
-    await em.nativeDelete(User, { id });
+  async deleteUser(@Arg("id") id: number): Promise<boolean> {
+    await User.delete(id);
 
     return true;
   }
@@ -136,7 +135,7 @@ export class UserResolver {
   @Mutation(() => UserResponse)
   async register(
     @Arg("options") options: UserInput,
-    @Ctx() { em, req }: MyContext
+    @Ctx() { req }: MyContext
   ): Promise<UserResponse> {
     const errors = validateRegister(options);
 
@@ -146,30 +145,29 @@ export class UserResolver {
 
     const hashedPassword = await argon2.hash(options.password);
 
-    const user = em.create(User, {
+    const user = User.create({
       username: options.username,
       password: hashedPassword,
       email: options.email,
     });
-
     try {
-      await em.persistAndFlush(user);
+      await user.save();
     } catch (err: any) {
+      console.log(err);
       if (err.code === "23505") {
         errors.push({
           field: "username",
-          message: "Username already exists",
+          message: "Username/Email already exists",
         });
       } else {
         throw new Error(err);
       }
-
-      em.clear();
     }
 
     if (errors.length > 0) {
       return { errors };
     } else {
+      console.log(user);
       req.session.userId = user.id;
       return { user };
     }
@@ -179,37 +177,27 @@ export class UserResolver {
   async login(
     @Arg("usernameOrEmail") usernameOrEmail: string,
     @Arg("password") password: string,
-    @Ctx() { em, req }: MyContext
+    @Ctx() { req }: MyContext
   ): Promise<UserResponse> {
-    const user = await em.findOne(
-      User,
-      usernameOrEmail.includes("@")
-        ? { email: usernameOrEmail }
-        : { username: usernameOrEmail }
-    );
+    const user = await User.findOne({
+      where: usernameOrEmail.includes("@")
+        ? {
+            email: usernameOrEmail,
+          }
+        : { username: usernameOrEmail },
+    });
 
     if (!user) {
-      return {
-        errors: [
-          {
-            field: "usernameOrEmail",
-            message: "that username does not exist",
-          },
-        ],
-      };
+      return errorGenerate({
+        field: "usernameOrEmail",
+        message: "that username does not exist",
+      });
     }
 
     const validPassword = await argon2.verify(user.password, password);
 
     if (!validPassword) {
-      return {
-        errors: [
-          {
-            field: "password",
-            message: "password is wrong",
-          },
-        ],
-      };
+      return errorGenerate({ field: "password", message: "password is wrong" });
     }
 
     req.session.userId = user.id;
