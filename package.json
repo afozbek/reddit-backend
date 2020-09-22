@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "nodemon dist/index.js",
     "start": "node dist/index.js",
-    "t-start": "tsc -w",
-    "migrate": "mikro-orm migration:create"
+    "t-start": "tsc -w"
   },
   "keywords": [],
   "author": "",
@@ -33,10 +32,6 @@
     "typescript": "^4.0.2"
   },
   "dependencies": {
-    "@mikro-orm/cli": "^4.0.3",
-    "@mikro-orm/core": "^4.0.3",
-    "@mikro-orm/migrations": "^4.0.3",
-    "@mikro-orm/postgresql": "^4.0.3",
     "@types/cors": "^2.8.7",
     "apollo-server-express": "^2.17.0",
     "argon2": "^0.27.0",
@@ -51,6 +46,7 @@
     "pg": "^8.3.3",
     "reflect-metadata": "^0.1.13",
     "type-graphql": "^1.0.0",
+    "typeorm": "^0.2.26",
     "uuid": "^8.3.0"
   }
 }
