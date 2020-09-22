@@ -22,7 +22,7 @@ import { User } from "./entities/User";
 require("dotenv").config();
 
 const main = async () => {
-  const conn = await createConnection({
+  await createConnection({
     type: "postgres",
     database: "reddit2",
     username: process.env.DB_USER,
