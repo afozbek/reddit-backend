@@ -18,19 +18,23 @@ import { __prod__, __SESSION_COOKIE_NAME__ } from "./constants";
 import cors from "cors";
 import { Post } from "./entities/Post";
 import { User } from "./entities/User";
+import path from "path";
 
 require("dotenv").config();
 
 const main = async () => {
-  await createConnection({
+  const conn = await createConnection({
     type: "postgres",
     database: "reddit2",
     username: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     logging: true,
     synchronize: true,
+    migrations: [path.join(__dirname, "./migrations/*")],
     entities: [Post, User],
   });
+
+  await conn.runMigrations();
 
   const app = express();
 
