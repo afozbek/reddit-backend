@@ -47,19 +47,32 @@ export class PostResolver {
   ): Promise<PaginatedPosts> {
     const realLimit = Math.min(50, limit);
 
-    const query = getConnection()
-      .getRepository(Post)
-      .createQueryBuilder("p")
-      .orderBy('"createdAt"', "DESC")
-      .take(realLimit + 1);
+    const parameters: any[] = [realLimit + 1];
 
     if (cursor) {
-      query.where('"createdAt" < :cursor', {
-        cursor: new Date(parseInt(cursor)),
-      });
+      parameters.push(new Date(parseInt(cursor)));
     }
 
-    const posts = await query.getMany();
+    const posts = await getConnection().query(
+      `
+        select p.*, json_build_object(
+          'id', u.id,
+          'username', u.username,
+          'email' , u.email,
+          'createdAt', u."createdAt",
+          'updatedAt', u."updatedAt"
+          ) creator
+        from post p, public.user u
+        where p."creatorId" = u.id
+        ${cursor ? `and p."createdAt" < $2` : ""}
+        order by p."createdAt" DESC
+        limit $1
+      `,
+      parameters
+    );
+
+    console.log(posts);
+
     return {
       posts: posts.slice(0, realLimit),
       hasMore: posts.length === realLimit + 1,
