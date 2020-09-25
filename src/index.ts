@@ -19,6 +19,7 @@ import cors from "cors";
 import { Post } from "./entities/Post";
 import { User } from "./entities/User";
 import path from "path";
+import { Updoot } from "./entities/Updoot";
 
 require("dotenv").config();
 
@@ -31,7 +32,7 @@ const main = async () => {
     logging: true,
     synchronize: true,
     migrations: [path.join(__dirname, "./migrations/*")],
-    entities: [Post, User],
+    entities: [Post, User, Updoot],
   });
 
   await conn.runMigrations();
