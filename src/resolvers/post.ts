@@ -14,8 +14,9 @@ import {
   Root,
   UseMiddleware,
 } from "type-graphql";
-import { Post } from "./../entities/Post";
+import { Post } from "../entities/Post";
 import { getConnection } from "typeorm";
+import { Updoot } from "../entities/Updoot";
 
 @InputType()
 class PostInput {
@@ -52,14 +53,22 @@ export class PostResolver {
   @Query(() => PaginatedPosts)
   async posts(
     @Arg("limit", () => Int) limit: number,
-    @Arg("cursor", () => String, { nullable: true }) cursor: string | null
+    @Arg("cursor", () => String, { nullable: true }) cursor: string | null,
+    @Ctx() { req }: MyContext
   ): Promise<PaginatedPosts> {
     const realLimit = Math.min(50, limit);
 
     const parameters: any[] = [realLimit + 1];
 
+    if (req.session.userId) {
+      parameters.push(req.session.userId);
+    }
+
+    // realLimit, userId?, cursor
+    let cursorIndex = 3;
     if (cursor) {
       parameters.push(new Date(parseInt(cursor)));
+      cursorIndex = parameters.length;
     }
 
     const posts = await getConnection().query(
@@ -70,10 +79,15 @@ export class PostResolver {
           'email' , u.email,
           'createdAt', u."createdAt",
           'updatedAt', u."updatedAt"
-          ) creator
+          ) creator,
+        ${
+          req.session.userId
+            ? '(select value from updoot where "userId" = $2 and "postId" = p.id) "voteStatus"'
+            : 'null as "voteStatus"'
+        }
         from post p, public.user u
         where p."creatorId" = u.id
-        ${cursor ? `and p."createdAt" < $2` : ""}
+        ${cursor ? `and p."createdAt" < $${cursorIndex}` : ""}
         order by p."createdAt" DESC
         limit $1
       `,
@@ -97,20 +111,55 @@ export class PostResolver {
     const realValue = isUpdoot ? 1 : -1;
     const { userId } = req.session;
 
-    await getConnection().query(
-      `
-        START TRANSACTION;
+    const updoot = await Updoot.findOne({ where: { postId, userId } });
 
-        insert into updoot ("userId", "postId", value)
-        values (${userId}, ${postId}, ${realValue});
+    console.log("updoot value", updoot?.value);
+    console.log("real value", realValue);
+    // User is already voted on the post
+    // But they are changing
+    if (updoot && updoot.value !== realValue) {
+      await getConnection().transaction(async (tm) => {
+        await tm.query(
+          `
+          update updoot
+          set value = $1
+          where "postId" = $2 and "userId" = $3;
+        `,
+          [realValue, postId, userId]
+        );
 
-        update post
-        set points = points + ${realValue}
-        where id = ${postId};
+        await tm.query(
+          `
+          update post
+          set points = points + $1
+          where id = $2;
+        `,
+          [realValue * 2, postId]
+        );
+      });
+    } else if (!updoot) {
+      // never vote before
+      await getConnection().transaction(async (tm) => {
+        // Insert
+        await tm.query(
+          `
+          insert into updoot ("userId", "postId", value)
+          values ($1, $2, $3);
+        `,
+          [userId, postId, realValue]
+        );
 
-        COMMIT;
-      `
-    );
+        // Update
+        await tm.query(
+          `
+          update post
+          set points = points + $1
+          where id = $2;
+        `,
+          [realValue, postId]
+        );
+      });
+    }
 
     return true;
   }
