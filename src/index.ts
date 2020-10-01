@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import "dotenv-safe";
 
 import express from "express";
 import Redis from "ioredis";
@@ -23,16 +24,12 @@ import { Updoot } from "./entities/Updoot";
 import { createUserLoader } from "./utils/CreateUserLoader";
 import { createUpdootLoader } from "./utils/CreateUpdootLoader";
 
-require("dotenv").config();
-
 const main = async () => {
   const conn = await createConnection({
     type: "postgres",
-    database: "reddit2",
-    username: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
+    url: process.env.DATABASE_URL,
     logging: true,
-    synchronize: true,
+    // synchronize: true,
     migrations: [path.join(__dirname, "./migrations/*")],
     entities: [Post, User, Updoot],
   });
@@ -43,13 +40,15 @@ const main = async () => {
 
   app.use(
     cors({
-      origin: "http://localhost:3000",
+      origin: process.env.CORS_ORIGIN,
       credentials: true,
     })
   );
 
   const RedisStore = connectRedis(session);
-  const redis = new Redis();
+  const redis = new Redis(process.env.REDIS_URL);
+
+  app.set("proxy", 1);
 
   app.use(
     session({
@@ -63,6 +62,7 @@ const main = async () => {
         httpOnly: true,
         secure: __prod__, // cookie only works https
         sameSite: "lax", //csrf
+        domain: __prod__ ? ".furkanozbek.com" : undefined,
       },
       saveUninitialized: false,
       secret: process.env.SESSION_SECRET || "",
@@ -89,8 +89,8 @@ const main = async () => {
     cors: false,
   });
 
-  app.listen(8080, () => {
-    console.log("Server is listening on 8080");
+  app.listen(process.env.PORT, () => {
+    console.log("Server is listening on: " + process.env.PORT);
   });
 };
 

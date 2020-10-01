@@ -1,8 +1,9 @@
-# Reddit Clone App
+[# Reddit Clone App
 
 This app uses some of the new technologies. My main purpose is to learn this technologies. I will follow up a [tutorial on youtube](https://www.youtube.com/watch?v=I6ypD7qv3Z8&list=WL&index=2&t=1961s) which **Ben Awad** made. I highly recommend to check [his channel](https://www.youtube.com/channel/UC-8QAzbLcRglXeN_MY9blyw) on youtube
 
 ## Techologies
+
 - React
 - TypeScript
 - GraphQL
@@ -15,3 +16,7 @@ This app uses some of the new technologies. My main purpose is to learn this tec
 - Next.js
 - TypeGraphQL
 - Chakra
+
+## Deployment
+
+http://dokku.viewdocs.io/dokku~v0.17.9/deployment/application-deployment/

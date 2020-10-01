@@ -212,7 +212,7 @@ export class UserResolver {
       "ex",
       expirationTime
     );
-    const html = `<a href="http://localhost:3000/change-password/${paswordToken}">reset password</a>`;
+    const html = `<a href="${process.env.CORS_ORIGIN}/change-password/${paswordToken}">reset password</a>`;
     await sendEmail(email, html, "Forgot Password");
 
     return true;
