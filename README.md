@@ -18,5 +18,7 @@ This app uses some of the new technologies. My main purpose is to learn this tec
 - Chakra
 
 ## Deployment
+- Docker Container: https://hub.docker.com/repository/docker/afozbek/lireddit
+- Digital Ocean: when creating a droplet you can use dokku plugin
+  - Dokku Docs: http://dokku.viewdocs.io/dokku~v0.17.9/deployment/application-deployment/
 
-http://dokku.viewdocs.io/dokku~v0.17.9/deployment/application-deployment/
