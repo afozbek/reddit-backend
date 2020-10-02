@@ -62,7 +62,7 @@ const main = async () => {
         httpOnly: true,
         secure: __prod__, // cookie only works https
         sameSite: "lax", //csrf
-        domain: __prod__ ? ".furkanozbek.com" : undefined,
+        domain: __prod__ ? ".furkanozbek.com" : "localhost",
       },
       saveUninitialized: false,
       secret: process.env.SESSION_SECRET || "",
@@ -82,6 +82,13 @@ const main = async () => {
       userLoader: createUserLoader(),
       updootLoader: createUpdootLoader(),
     }),
+    playground: !__prod__
+      ? {
+          settings: {
+            "request.credentials": "include",
+          },
+        }
+      : undefined,
   });
 
   apolloServer.applyMiddleware({
